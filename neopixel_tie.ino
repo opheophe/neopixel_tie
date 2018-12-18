@@ -10,7 +10,7 @@
 int brightness = 100;
 long int setup_millis = 0;
 int mapped = 0;
-int mode=0;
+int mode = 2;
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(num_pixels, light_pin, NEO_GRB + NEO_KHZ800);
 
@@ -28,16 +28,24 @@ void setup() {
 void loop() {
 
 
-
-
-
-  if (setup_millis + 5000 > millis()) {
-    brightness = map(analogRead(pot_pin), 0, 1024, 1, 101);
-    Serial.print("Setting brightness: ");
-    Serial.println(brightness);
-    colorWipe(strip.Color(255 * brightness / 100, 255 * brightness / 100, 0), 0);
-  } else {
-
+  if (mode == 0) { // Setup
+    if (setup_millis + 5000 > millis()) {
+      brightness = map(analogRead(pot_pin), 0, 1024, 1, 101);
+      Serial.print("Setting brightness: ");
+      Serial.println(brightness);
+      colorWipe(strip.Color(255 * brightness / 100, 255 * brightness / 100, 0), 0);
+    } else {
+      setup_millis = millis();
+      mode = 1;
+      colorWipe(strip.Color(0, 0, 0), 0);
+    }
+  } else if (mode == 1) { // Wait after setup
+    if (setup_millis + 3000 > millis()) {
+      // Do nothing
+    } else {
+      mode = 2;
+    }
+  } else if (mode == 2) { // Normal mode
     mapped = map(analogRead(pot_pin), 0, 1024, 0, 7 + 1);
     Serial.print("Mapping: ");
     Serial.println(mapped);
@@ -45,7 +53,7 @@ void loop() {
     switch (mapped) {
       case 0:
         Serial.println("Setup");
-
+        mode = 0;
         setup_millis = millis();
         break;
       case 1:
