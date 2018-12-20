@@ -3,9 +3,10 @@
 #include <avr/power.h>
 #endif
 
-#define light_pin 10
-#define pot_pin 1
-#define num_pixels 1
+#define light_pin 1
+#define pot_pin A1
+#define num_pixels 3
+#define num_states 9
 
 int brightness = 100;
 long int setup_millis = 0;
@@ -22,7 +23,7 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(num_pixels, light_pin, NEO_GRB + NEO
 // on a live circuit...if you must, connect GND first.
 
 void setup() {
-  Serial.begin(9600);
+  // Serial.begin(9600);
   strip.begin();
   strip.show();
 }
@@ -33,8 +34,8 @@ void loop() {
   if (mode == 0) { // Setup
     if (setup_millis + 5000 > millis()) {
       brightness = map(analogRead(pot_pin), 0, 1024, 1, 101);
-      Serial.print("Setting brightness: ");
-      Serial.println(brightness);
+      //   Serial.print("Setting brightness: ");
+      //   Serial.println(brightness);
       for (uint16_t i = 0; i < strip.numPixels(); i++) {
         strip.setPixelColor(i, strip.Color(0, 0, 0) );
       }
@@ -52,9 +53,9 @@ void loop() {
       mode = 2;
     }
   } else if (mode == 2) { // Normal mode
-    mapped = map(analogRead(pot_pin), 0, 1024, 0, 7 + 1);
-    Serial.print("Mapping: ");
-    Serial.println(mapped);
+    mapped = map(analogRead(pot_pin), 0, 1024, 0, num_states + 1);
+    //   Serial.print("Mapping: ");
+    //   Serial.println(mapped);
     if (mapped_prev != mapped) {
       state = 0;
       mapped_prev = mapped;
@@ -62,25 +63,25 @@ void loop() {
 
     switch (mapped) {
       case 0:
-        Serial.println("Setup");
+        //     Serial.println("Setup");
         mode = 0;
         setup_millis = millis();
         break;
       case 1:
         if (state == 0) {
-          strip.setPixelColor(0, strip.Color(255 / 100 * brightness, 0, 0) );
+          colorWipe( strip.Color(255 / 100 * brightness, 0, 0), 50);
           strip.show();
         } else if (state == 1) {
-          strip.setPixelColor(0, strip.Color(0, 255 / 100 * brightness, 0) );
+          colorWipe( strip.Color(0, 255 / 100 * brightness, 0), 50);
           strip.show();
         } else if (state == 2) {
-          strip.setPixelColor(0, strip.Color(0, 0, 255 / 100 * brightness) );
+          colorWipe( strip.Color(0, 0, 255 / 100 * brightness), 50);
           strip.show();
         } else if (state == 3) {
-          strip.setPixelColor(0, strip.Color(255 / 100 * brightness, 255 / 100 * brightness, 0) );
+          colorWipe( strip.Color(255 / 100 * brightness, 255 / 100 * brightness, 0), 50);
           strip.show();
         } else if (state == 4) {
-          strip.setPixelColor(0, strip.Color(0, 255 / 100 * brightness, 255 / 100 * brightness) );
+          colorWipe( strip.Color(0, 255 / 100 * brightness, 255 / 100 * brightness), 50);
           strip.show();
         }
         state++;
@@ -111,6 +112,12 @@ void loop() {
         break;
       case 7:
         rainbowCycle(20);
+        break;
+      case 8:
+        rainbowChase(200);
+        break;
+      case 9:
+        reverseRainbowChase(200);
         break;
       default:
         break;
@@ -147,6 +154,40 @@ void rainbow(uint8_t wait) {
 
   state++;
   if (state > 256 - 1) {
+    state = 0;
+  }
+}
+
+void rainbowChase(uint8_t wait) {
+  // Only goes up to 254, to make mod 3 behave decently.
+
+  uint16_t i;
+  for (i = 0; i < strip.numPixels(); i++) {
+    strip.setPixelColor(i, Wheel((i + state) & 255));
+  }
+  strip.setPixelColor(state % 3,  strip.Color(0, 0, 0));
+  strip.show();
+  delay(wait);
+
+  state++;
+  if (state > 254 - 1) {
+    state = 0;
+  }
+}
+
+void reverseRainbowChase(uint8_t wait) {
+  // Only goes up to 254, to make mod 3 behave decently.
+
+  uint16_t i;
+  for (i = 0; i < strip.numPixels(); i++) {
+    strip.setPixelColor(i, strip.Color(0, 0, 0));
+  }
+  strip.setPixelColor(state % 3, Wheel((i + state) & 255));
+  strip.show();
+  delay(wait);
+
+  state++;
+  if (state > 254 - 1) {
     state = 0;
   }
 }
